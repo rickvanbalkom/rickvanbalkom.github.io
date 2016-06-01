@@ -46,6 +46,8 @@ div.datum(sets).call(chart);
 var tooltip = d3.select("body").append("div")
     .attr("class", "venntooltip");
 
+var tooltipSize = 32;
+
 div.selectAll("path")
     .style("stroke-opacity", 0)
     .style("stroke", "#fff")
@@ -57,6 +59,7 @@ div.selectAll("g")
         venn.sortAreas(div, d);
 
         // Display a tooltip with the current size
+        tooltipSize = 32 + 16 * (d.size + 1);
         tooltip.transition().duration(400).style("opacity", .9);
         
         var mags = "";
@@ -68,11 +71,23 @@ div.selectAll("g")
             }
         }
 
-        if (d.size === 1) {
-            tooltip.html("<b>" + mags + "</b><br>" + d.size + " auteur" );
-        } else {
-            tooltip.html("<b>" + mags + "</b><br>" + d.size + " auteurs" );
+        var auth = "";
+        for (var a in authors) {
+            var isSubset = d.sets.every(function(val) { return authors[a].mags.indexOf(val) >= 0; });
+
+            if (isSubset) {
+                auth += "<br>" + authors[a].name;
+            }
         }
+
+
+        if (d.size === 1) {
+            tooltip.html("<b>" + mags + "</b><br>" + d.size + " auteur - " + d.bijdr + " bijdragen<br><i>" + auth + "</i>");
+        } else {
+            tooltip.html("<b>" + mags + "</b><br>" + d.size + " auteurs - " + d.bijdr + " bijdragen<br><i>" + auth + "</i>");
+        }
+
+
 
         // highlight the current path
         var selection = d3.select(this).transition("tooltip").duration(400);
@@ -84,7 +99,8 @@ div.selectAll("g")
 
     .on("mousemove", function() {
         tooltip.style("left", (d3.event.pageX + 10) + "px")
-               .style("top", (d3.event.pageY + 10) + "px");
+               .style("top", (d3.event.pageY + 10) + "px")
+               .style("height", tooltipSize + "px");
     })
 
     .on("mouseout", function(d, i) {
