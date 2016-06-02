@@ -76,7 +76,17 @@ div.selectAll("g")
             var isSubset = d.sets.every(function(val) { return authors[a].mags.indexOf(val) >= 0; });
 
             if (isSubset) {
-                auth += "<br>" + authors[a].name;
+                var authExtra = "";
+                for (var b in d.sets) {
+                    if (authExtra.length === 0) {
+                        authExtra += authors[a].bijdr[authors[a].mags.indexOf(d.sets[b])];    
+                    } else {
+                        authExtra += " / " + authors[a].bijdr[authors[a].mags.indexOf(d.sets[b])];
+                    }
+                    
+                }
+
+                auth += "<br>" + authors[a].name + " - " + authExtra;
             }
         }
 
