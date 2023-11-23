@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>HTML Pong Game</title>
+  <style>
+    body {
+      background-color: black;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas" width="800" height="600"></canvas>
+  <script>
+    // Get the canvas element and its context
+    var canvas = document.getElementById("canvas");
+    var ctx = canvas.getContext("2d");
+
+    // Define variables for the ball, the paddles, the score and the speed
+    var ball = {
+      x: canvas.width / 2,
+      y: canvas.height / 2,
+      radius: 40, // Change the radius of the ball to 40
+      dx: 5,
+      dy: 5,
+      color: "red"
+    };
+
+    // Define a variable for the toppings of the pizza
+    var toppings = [
+      ["cheese", "yellow"],
+      ["pepperoni", "brown"],
+      ["olives", "black"]
+    ];
+
+    // Define a variable for the pizza
+    var pizza = [];
+
+    generateToppings();
+
+    var direction = 1;
+
+    var paddleLeft = {
+      x: 20,
+      y: canvas.height / 2 - 50,
+      width: 10,
+      height: 100,
+      color: "white",
+      score: 0
+    };
+
+    var paddleRight = {
+      x: canvas.width - 30,
+      y: canvas.height / 2 - 50,
+      width: 10,
+      height: 100,
+      color: "white",
+      score: 0
+    };
+
+    var speed = 1;
+
+    // Define constants for the keys
+    var UP = 38;
+    var DOWN = 40;
+    var W = 87;
+    var S = 83;
+    var SPACE = 32;
+
+    // Define variables for the key states
+    var upPressed = false;
+    var downPressed = false;
+    var wPressed = false;
+    var sPressed = false;
+    var spacePressed = false;
+
+    // Define a variable for the game state
+    var running = false;
+
+    // Define a variable for the previous state of the spacebar
+    var spacePrev = false;
+
+    // Define a variable for the winner of the game
+    var winner = 0; // 0: no winner, 1: left player, 2: right player
+
+    // Define a constant for the maximum score
+    var MAX_SCORE = 3;
+
+    // Add an event listener for the keydown event
+    document.addEventListener("keydown", function(event) {
+      switch (event.keyCode) {
+        case UP:
+          upPressed = true;
+          break;
+        case DOWN:
+          downPressed = true;
+          break;
+        case W:
+          wPressed = true;
+          break;
+        case S:
+          sPressed = true;
+          break;
+        case SPACE:
+          // If the spacebar is pressed and the previous state was false
+          if (!spacePrev) {
+            // If there is a winner
+            if (winner > 0) {
+              // Restart the game
+              restart();
+            } else {
+              // Toggle the value of running
+              running = !running;
+            }
+          }
+          // Set the current state to true
+          spacePressed = true;
+          break;
+      }
+    });
+
+    // Add an event listener for the keyup event
+    document.addEventListener("keyup", function(event) {
+      switch (event.keyCode) {
+        case UP:
+          upPressed = false;
+          break;
+        case DOWN:
+          downPressed = false;
+          break;
+        case W:
+          wPressed = false;
+          break;
+        case S:
+          sPressed = false;
+          break;
+        case SPACE:
+          // Set the current and previous states to false
+          spacePressed = false;
+          spacePrev = false;
+          break;
+      }
+    });
+
+    // Define a function to generate the toppings on the pizza
+    function generateToppings() {
+      // Clear the pizza array
+      pizza = [];
+
+      // Loop through the toppings array
+      for (var i = 0; i < toppings.length; i++) {
+        // Get the name and the color of the topping
+        var name = toppings[i][0];
+        var color = toppings[i][1];
+
+        // Generate a random number of circles for the topping
+        var num = Math.floor(Math.random() * 5) + 1;
+
+        // Loop through the number of circles
+        for (var j = 0; j < num; j++) {
+          // Generate a random angle and distance for the circle
+          var angle = Math.random() * Math.PI * 2;
+          var distance = Math.random() * ball.radius;
+
+          // Calculate the x and y coordinates of the circle
+          var x = ball.x + Math.cos(angle) * distance;
+          var y = ball.y + Math.sin(angle) * distance;
+
+          // Add the circle to the pizza array
+          pizza.push([x, y, color]);
+        }
+      }
+    }
+
+    // Define a function to draw the toppings on the ball
+    function drawToppings() {
+      // Loop through the pizza array
+      for (var i = 0; i < pizza.length; i++) {
+        // Get the x, y and color of the circle
+        var x = pizza[i][0];
+        var y = pizza[i][1];
+        var color = pizza[i][2];
+
+        // Set the fill style to the color of the circle
+        ctx.fillStyle = color;
+
+        // Draw the circle on the ball
+        ctx.beginPath();
+        ctx.arc(x, y, 1, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // Define a function to draw the crust on the ball
+    function drawCrust() {
+      // Set the stroke style to brown
+      ctx.strokeStyle = "brown";
+
+      // Set the line width to 4
+      ctx.lineWidth = 4;
+
+      // Draw a ring on the ball
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // Define a function to draw the ball, the paddles and the score on the canvas
+    function draw() {
+      // Clear the canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw the ball
+      ctx.fillStyle = ball.color;
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Draw the crust on the ball
+      drawCrust();
+
+      // Draw the toppings on the ball
+      drawToppings();
+
+      // Draw the left paddle
+      ctx.fillStyle = paddleLeft.color;
+      ctx.fillRect(paddleLeft.x, paddleLeft.y, paddleLeft.width, paddleLeft.height);
+
+      // Draw the right paddle
+      ctx.fillStyle = paddleRight.color;
+      ctx.fillRect(paddleRight.x, paddleRight.y, paddleRight.width, paddleRight.height);
+
+      // Draw the score
+      ctx.fillStyle = "white";
+      ctx.font = "32px Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      ctx.fillText(paddleLeft.score, canvas.width / 4, 20);
+      ctx.fillText(paddleRight.score, canvas.width * 3 / 4, 20);
+
+      // If there is a winner, show the winner and the instruction
+      if (winner > 0) {
+        showWinner();
+      }
+    }
+
+    // Define a function to calculate the movement of the ball and the collision with the edges and the paddles
+    function update() {
+      // Move the ball
+      ball.x += ball.dx * speed;
+      ball.y += ball.dy * speed;
+
+      // Bounce the ball off the top and bottom edges
+      if (ball.y - ball.radius < 0 || ball.y + ball.radius > canvas.height) {
+        ball.dy = -ball.dy;
+      }
+
+      // Bounce the ball off the left paddle
+      if (ball.x - ball.radius < paddleLeft.x + paddleLeft.width &&
+          ball.y > paddleLeft.y && ball.y < paddleLeft.y + paddleLeft.height) {
+        ball.dx = -ball.dx;
+        speed += 0.1;
+      }
+
+      // Bounce the ball off the right paddle
+      if (ball.x + ball.radius > paddleRight.x &&
+          ball.y > paddleRight.y && ball.y < paddleRight.y + paddleRight.height) {
+        ball.dx = -ball.dx;
+        speed += 0.1;
+      }
+
+      // Increase the score of the right paddle if the ball goes past the left edge
+      if (ball.x - ball.radius < 0) {
+        paddleRight.score++;
+        // If the right player reaches the maximum score
+        if (paddleRight.score == MAX_SCORE) {
+          // Set the winner to 2
+          winner = 2;
+          // Pause the game
+          running = false;
+        } else {
+          // Reset the ball and the paddles
+          reset();
+        }
+      }
+
+      // Increase the score of the left paddle if the ball goes past the right edge
+      if (ball.x + ball.radius > canvas.width) {
+        paddleLeft.score++;
+        // If the left player reaches the maximum score
+        if (paddleLeft.score == MAX_SCORE) {
+          // Set the winner to 1
+          winner = 1;
+          // Pause the game
+          running = false;
+        } else {
+          // Reset the ball and the paddles
+          reset();
+        }
+      }
+
+      // Loop through the pizza array
+      console.log(pizza);
+      for (var i = 0; i < pizza.length; i++) {
+        // Get the x and y coordinates of the circle
+        var x = pizza[i][0];
+        var y = pizza[i][1];
+
+        // Calculate the angle and distance of the circle from the center of the ball
+        var angle = Math.atan2(y - ball.y, x - ball.x);
+        var distance = Math.sqrt((x - ball.x) * (x - ball.x) + (y - ball.y) * (y - ball.y));
+
+        // Update the x and y coordinates of the circle according to the movement of the ball
+        pizza[i][0] = ball.x + Math.cos(angle) * distance;
+        pizza[i][1] = ball.y + Math.sin(angle) * distance;
+      }
+
+    }
+
+    // Define a function to generate a random angle
+    function randomAngle() {
+      // Generate a random number between -0.25 and 0.25
+      var r = Math.random() - 0.75;
+
+      // Multiply by Math.PI to get a random angle between -45 and 45 degrees
+      var angle = r * Math.PI;
+
+      // Return the angle in radians
+      return angle;
+    }
+
+    // Define a function to show the winner and the instruction on the screen
+    function showWinner() {
+      // Set the font, alignment and color of the text
+      ctx.font = "64px Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "white";
+
+      // Draw the winner text in the center of the screen
+      if (winner == 1) {
+        ctx.fillText("Speler 1 wint!", canvas.width / 2, canvas.height / 2);
+      } else if (winner == 2) {
+        ctx.fillText("Speler 2 wint!", canvas.width / 2, canvas.height / 2);
+      }
+
+      // Set the font, alignment and color of the instruction text
+      ctx.font = "32px Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "bottom";
+      ctx.fillStyle = "white";
+
+      // Draw the instruction text below the winner text
+      ctx.fillText("Druk op spatie om opnieuw te beginnen", canvas.width / 2, canvas.height - 20);
+    }
+
+    // Define a function to restart the game
+    function restart() {
+      // Reset the score, the ball, the paddles and the winner
+      paddleLeft.score = 0;
+      paddleRight.score = 0;
+      ball.x = canvas.width / 2;
+      ball.y = canvas.height / 2;
+      ball.dx = 5;
+      ball.dy = 5;
+      speed = 1;
+      paddleLeft.y = canvas.height / 2 - 50;
+      paddleRight.y = canvas.height / 2 - 50;
+      winner = 0;
+
+      // Start the game
+      running = true;
+    }
+    
+    // Define a function to reset the game
+    function reset() {
+      // Reset the ball position
+      ball.x = canvas.width / 2;
+      ball.y = canvas.height / 2;
+
+      // Generate a random angle
+      var angle = randomAngle();
+
+      // Calculate the x and y speed of the ball
+      var dx = Math.cos(angle) * 5;
+      var dy = Math.sin(angle) * 5;
+
+      // Alternate the direction of the ball between left and right
+      if (direction == 1) {
+        direction = -1;
+      } else {
+        direction = 1;
+      }
+
+      // Set the x and y speed of the ball according to the direction
+      ball.dx = dx * direction;
+      ball.dy = dy;
+
+      // Reset the speed
+      speed = 1;
+
+      // Reset the paddle positions
+      paddleLeft.y = canvas.height / 2 - 50;
+      paddleRight.y = canvas.height / 2 - 50;
+
+      // Generate the toppings on the pizza
+      generateToppings();
+    }
+    
+
+    // Define a function to process the input of the user and move the paddles
+    function input() {
+      // Move the left paddle up if the W key is pressed
+      if (wPressed && paddleLeft.y > 0) {
+        paddleLeft.y -= 5;
+      }
+
+      // Move the left paddle down if the S key is pressed
+      if (sPressed && paddleLeft.y + paddleLeft.height < canvas.height) {
+        paddleLeft.y += 5;
+      }
+
+      // Move the right paddle up if the UP key is pressed
+      if (upPressed && paddleRight.y > 0) {
+        paddleRight.y -= 5;
+      }
+
+      // Move the right paddle down if the DOWN key is pressed
+      if (downPressed && paddleRight.y + paddleRight.height < canvas.height) {
+        paddleRight.y += 5;
+      }
+    }
+
+
+    // Define a function to run the main loop of the game
+    function loop() {
+      // Draw the game
+      draw();
+
+      // Update the game if it is running
+      if (running) {
+        update();
+        input();
+      }
+
+      // Request the next frame
+      requestAnimationFrame(loop);
+    }
+
+    // Start the loop
+    loop();
+    </script>
+</body>
+</html>
+
